@@ -32,7 +32,37 @@ function SpinParser() {
                     params = tmp.split(',');
                 }
                 return {'methodName': methodName, 'lineNumber': lineNumber, 'params': params};
+            },
+
+            removeCurlyComments = function (data) {
+                // Remove all curly brace comments in the file (Thanks rosco_pc for the regexp).
+                data = data.replace(/(\{\{[^\}]*\}\})|(\{[^\}]*\})/g, '');
+                return data;
+            },
+
+            string2lines = function (data) {
+                // Split source file ino lines
+                lines = data.match(/^.*((\r\n|\n|\r)|$)/gm);
+                return lines;
+            },
+
+            detectSectionChange = function (line, section) {
+                var sections = [{ re: /^PUB /, section: 'PUB' },
+                                { re: /^PRI /, section: 'PRI' },
+                                { re: /^OBJ/,  section: 'OBJ' },
+                                { re: /^DAT/,  section: 'DAT' },
+                                { re: /^CON/,  section: 'CON' },
+                                { re: /^VAR/,  section: 'VAR' }],
+                    sec;
+                for (sec = 0; sec < sections.length; sec += 1) {
+                    if (line.match(sections[sec].re)) {
+                        section = sections[sec].section;
+                        break;
+                    }
+                }
+                return section;
             };
+
 
         if (output[fileName] === undefined) {
 
@@ -40,31 +70,17 @@ function SpinParser() {
 
             output[fileName] = sourceRecord;
 
-            // Split source file ino lines
-            lines = data.match(/^.*((\r\n|\n|\r)|$)/gm);
+            data = removeCurlyComments(data);
+
+            lines = string2lines(data);
 
             for (lineNumber = 0; lineNumber <  lines.length; lineNumber += 1) {
                 line = lines[lineNumber];
                 line = line.trim();
                 line = line.split("'")[0];
-                if (line.match(/^PUB /)) {
-                    section = 'PUB';
-                }
-                if (line.match(/^PRI /)) {
-                    section = 'PRI';
-                }
-                if (line.match(/^OBJ/)) {
-                    section = 'OBJ';
-                }
-                if (line.match(/^DAT/)) {
-                    section = 'DAT';
-                }
-                if (line.match(/^CON/)) {
-                    section = 'CON';
-                }
-                if (line.match(/^VAR/)) {
-                    section = 'VAR';
-                }
+
+                section = detectSectionChange(line, section);
+
                 switch (section) {
                 case 'PUB':
                     line = line.replace(/^PUB/, '');
@@ -79,7 +95,6 @@ function SpinParser() {
                     section = 'none';
                     break;
                 case 'OBJ':
-                    line = line.replace(/OBJ/, '');
                     fields = line.split(':');
                     if (fields.length === 2) {
                         fileName = fields[1].replace(/"/g, '');
@@ -140,7 +155,9 @@ function SpinParser() {
         path = '../project/',
         topFile = 'WebServer_W5100_RTC.spin',
         parser,
-        parseProject;
+        parseProject,
+        encoding = 'utf8';
+//        encoding = 'ucs2';
 
     if (ENVIRONMENT_IS_NODE) {
         fs = require('fs');
@@ -149,9 +166,7 @@ function SpinParser() {
         parseProject = function parse(fileName) {
             var fileStack;
 
-           fs.readFile(path + fileName, 'utf8', function (err, data) {
-//           fs.readFile(path + fileName, 'ucs2', function (err, data) {
-
+            fs.readFile(path + fileName, encoding, function (err, data) {
                 if (err) {
                     throw err;
                 }
