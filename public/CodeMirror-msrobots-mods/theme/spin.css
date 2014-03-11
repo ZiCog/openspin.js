@@ -1,0 +1,58 @@
+        .cm-s-spin.CodeMirror
+        {
+            background: rgb(255, 255, 238);
+            color: black;
+            font-family: Parallax, Monospace;
+        }
+        .cm-s-spin .cm-keyword
+        {
+            font-weight: bold;
+            color: black;
+        }
+        .cm-s-spin .cm-number
+        {
+            color: green;
+        }
+        .cm-s-spin span.cm-variable
+        {
+            color: black;
+        }
+        .cm-s-spin .cm-operator
+        {
+            color: green;
+            font-weight: bold;
+        }
+        .cm-s-spin .cm-codecomment
+        {
+            color: rgb(102, 136, 136);
+        }
+        .cm-s-spin .cm-nonecodecomment
+        {
+            color: rgb(102, 136, 136);
+        }
+        .cm-s-spin .cm-doccomment
+        {
+            color: rgb(0, 0, 102);
+        }
+        .cm-s-spin .cm-nonedoccomment
+        {
+            color: rgb(0, 0, 102);
+        }
+        .cm-s-spin .cm-boldcomment
+        {
+            color: rgb(0, 0, 102);
+            font-weight: bold;
+        }
+        .cm-s-spin .cm-string
+        {
+            color: green;
+        }
+        .cm-s-spin .cm-error
+        {
+            color: rgb(255, 0, 0);
+        }
+        .cm-s-spin .cm-normal
+        {
+            color: black;
+        }
+

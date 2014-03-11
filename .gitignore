@@ -11,3 +11,12 @@
 *.lai
 *.la
 *.a
+
+node_modules
+
+library
+project
+public/OpenSpin
+
+
+

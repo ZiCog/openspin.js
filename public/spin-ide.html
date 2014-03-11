@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+
+<html lang="en" ng-app="openspinApp">
+<head>
+  <meta name="generator" content="HTML Tidy for Linux (vers 25 March 2009), see www.w3.org">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link rel="shortcut icon" href=  "../../docs-assets/ico/favicon.png">
+
+  <title>openspin.js</title><!-- Bootstrap core CSS -->
+  <link href="css/bootstrap.css" rel="stylesheet" type="text/css">
+  <!-- Custom styles for this template -->
+  <link href="css/starter-template.css" rel="stylesheet" type=  "text/css">
+  <!-- Just for debugging purposes. Don't actually copy this line! -->
+  <!--[if lt IE 9]><script src="../../docs-assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+  <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+  <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+  <!-- CodeMirror editor -->
+
+  <script src="CodeMirror/lib/codemirror.js" type=  "text/javascript"></script>
+  <script src="CodeMirror/mode/spin/spin.js" type=  "text/javascript"></script>
+  <script src="CodeMirror/addon/display/fullscreen.js" type=  "text/javascript"></script>
+  <script src="CodeMirror/addon/edit/matchbrackets.js" type=  "text/javascript"></script>
+  <!-- addons/dialog/dialog.js CodeMirror version 3.20 -->
+  <!-- addons/search/searchcursor.js CodeMirror version 3.20 -->
+  <!-- addons/search/search.js CodeMirror version 3.20 -->
+  <!-- addons/selection/active-line.js CodeMirror version 3.20 -->
+  <link rel="stylesheet" href="CodeMirror/lib/codemirror.css" type=  "text/css">
+  <link rel="stylesheet" href="CodeMirror/theme/solarized.css"  type="text/css">
+  <link rel="stylesheet" href="CodeMirror/theme/spin.css" type=  "text/css">
+  <link rel="stylesheet" href=
+  "CodeMirror/addon/display/fullscreen.css" type="text/css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.1/angular.min.js"></script>
+
+  <style media="screen" type="text/css">
+    .mpr-ellide {
+      word-wrap: nowrap;
+      overflow: hidden;
+      text-overflow:
+      ellipsis;
+      white-space: nowrap;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div class="navbar navbar-inverse navbar-fixed-top" role=  "navigation">
+    <div class="container">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse"><span class="sr-only">Toggle navigation</span></button> <a class="navbar-brand" href="#">openspin.js</a>
+      </div>
+
+      <div class="collapse navbar-collapse">
+        <ul class="nav navbar-nav">
+          <li class="active"><a href="#">Home</a></li>
+
+          <li><a href="#about">About</a></li>
+
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div><!--/.nav-collapse -->
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="starter-template">
+      <h1>Openspin.js</h1>
+ 
+      <p >Here we are experimenting with openspin
+      compiled to JS with Emscripten<br>
+      and run in the browser as a webworker.<br>
+      See also msrobots <a href="msrobots/Editor9/Editor9.htm">editor/compiler</a>
+    </div>
+ 
+    <div class="row">
+      <div class="col-md-2" ng-controller="FileListCtrl">
+
+        <div class="list-group">
+          <a ng-repeat="file in files"  href="" class="list-group-item mpr-ellide {{file.active}}">{{file.name}}</a>
+        </div>
+
+        <label>Download file:</label>
+        <input type="text" class="form-control" ng-model="file_name" placeholder="Type file name..">
+        <hr/>
+        <button type="button" class="btn btn-default" ng-click="addFile()">Download.</button>
+      </div>
+
+
+
+      <div class="col-md-10">
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <textarea id="editorArea" style="width:100%; resize:none" rows="40">
+{ Enter your Spin code here: }
+
+CON
+_clkmode = xtal1 + pll16x
+_xinfreq = 5_000_000
+
+PUB main
+    repeat
+        { Do domething }
+
+{ End }
+            </textarea>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" class="btn btn-default" onclick="workerSpawn()">Spawn Worker</button>
+          <button type="button" class="btn btn-default" onclick="workerPutAllFiles()">Send files to worker</button>
+          <button type="button" class="btn btn-default" onclick="workerCommand()">Compile</button>
+          <button type="button" class="btn btn-default" onclick="stressTest()">Stress Test</button>
+          <button type="button" class="btn btn-default" onclick="workerGetFile('demo1_FDS4port.binary')">Get binary</button>
+          <button type="button" class="btn btn-default" onclick="workerTerminate()">Terminate Worker</button>
+        </div>
+
+        <div class="progress">
+          <div id="compile-progress-bar" class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+            <span class="sr-only">0% Complete</span>
+          </div>
+        </div>
+        <textarea id="terminal" style="width:100%; resize:none" rows="10">
+No worker output yet.
+        </textarea>
+      </div>
+
+    </div>
+  </div><!-- /.container -->
+  <script type="text/javascript">
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Angular.js stuff
+        //
+        // http://srikarg.github.io/blog/learning-angularjs/
+        //
+        // See here for info on $http requests and services: 
+        // http://www.benlesh.com/2013/02/angularjs-creating-service-with-http.html
+        //
+        // Don't forget $scope.$apply(); can be usefull!
+
+        var openspinApp = angular.module('openspinApp', []);
+ 
+        openspinApp.controller('FileListCtrl', function ($scope, $http) {
+            $scope.files = [
+                {'name': 'WebServer_W5100_RTC.spin',         'active': 'active' }
+            ];
+
+            // Button action to add file
+            $scope.addFile = function () {
+                console.log($scope.file_name);
+                if (($scope.file_name !== '') && ($scope.file_name !== undefined)) {
+ 
+                    $http({method: 'GET', url: '/project/' + $scope.file_name}).
+                        success(function(data, status, headers, config) {
+                            // this callback will be called asynchronously
+                            // when the response is available
+ 
+                            $scope.files.push({
+                                name: $scope.file_name,
+                                active: $scope.file_active
+                            });
+                            $scope.file_name = '';
+                            $scope.file_active= '';
+                        }).
+                        error(function(data, status, headers, config) {
+                            // called asynchronously if an error occurs
+                            // or server returns response with an error status.
+                        });
+                }
+            }
+
+            // Model used by file name input text box. 
+            $scope.file_name = '';
+            $scope.file_active= '';
+
+        });
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+        /**
+        * UUID Generator.
+        *
+        * Compliant with RFC4122 version 4.
+        *
+        * @method uuid 
+        * @return {String}  The generated UUID. 
+        */
+        function uuid () {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random()*16|0,v=c=='x'?r:r&0x3|0x8;
+                return v.toString(16);
+            });
+        }
+      
+        function hexDump (data) {
+            var len = data.length;
+            var i;
+            var line = "";
+            var bytes = 0;
+            for (i = 0; i < len; i +=1) {
+                bytes += 1;
+                var highNibble = (data[i] >> 4).toString(16);
+                var lowNibble = (data[i] & 0xf).toString(16);
+                line += highNibble + lowNibble + " ";
+                if (bytes === 16) {
+                    line += "\n";
+                    bytes = 0;
+                }
+            }
+            writeTerminal (line);
+        }
+
+        /**
+        * Convert an array buffer to a string.
+        *
+        * @method ab2str
+        * @param  {ArrayBuffer} buf A raw buffer to convert to string, 2 bytes per char, (endian sensitive!).
+        * @return {String}      The string representation of the buffer. 
+        */
+        function ab2str(buf) {
+            return String.fromCharCode.apply(null, new Uint16Array(buf));
+        }
+
+        /**
+        * Convert a string to an array buffer.
+        *
+        * @method str2ab
+        * @param  {String} str A string to convert o an array buffer.
+        * @return {String} The buffer representation of the string, 2 bytes per char, (endian sensitive!). 
+        */
+        function str2ab(str) {
+            var buf = new ArrayBuffer(str.length * 2); // 2 bytes for each char
+            var bufView = new Uint16Array(buf);
+            for (var i = 0, strLen = str.length; i < strLen; i++) {
+                bufView[i] = str.charCodeAt(i);
+            }
+            return buf;
+        }
+
+        /**
+        * Clear the terminal.
+        *
+        * @method cls
+        */
+        function cls () {
+            document.getElementById('terminal').textContent = '';
+        }
+
+        /**
+        * Write text to terminal.
+        *
+        * @method writeTerminal
+        * @param {String} s Text to write to terminal.
+        */
+        function writeTerminal (s) {
+            var elem = document.getElementById('terminal');
+            elem.textContent += '\r\n' + s;
+            elem.scrollTop = elem.scrollHeight;  // Scroll to bottom so we can see it.
+        }
+
+        /**
+        * Set the position and status of a progress bar element.
+        *
+        * @method setProgressBar
+        * @param {String} id Indentity of the progress bar element
+        * @param {String} value Progress value in percent.
+        * @param {String} status Progress bar state one  of: 'success', 'info' 'warning' 'danger'
+        */
+        function setProgressBar(id, value, status) {
+            var bar = document.getElementById(id);
+            bar.style.width = value + "%";
+            $('#compile-progress-bar').removeClass('progress-bar-success');
+            $('#compile-progress-bar').removeClass('progress-bar-info');
+            $('#compile-progress-bar').removeClass('progress-bar-warning');
+            $('#compile-progress-bar').removeClass('progress-bar-danger');
+            switch (status) {
+               case 'success':
+                   $('#compile-progress-bar').addClass('progress-bar-success');
+                   break;
+               case 'info':
+                   $('#compile-progress-bar').addClass('progress-bar-info');
+                   break;
+               case 'warning':
+                   $('#compile-progress-bar').addClass('progress-bar-warning');
+                   break;
+               case 'danger':
+                   $('#compile-progress-bar').addClass('progress-bar-danger');
+                   break;
+             }
+             if ((stress === true) && (value === 100))
+             {
+                 workerCommand();
+             }
+        }
+
+        /**
+        * Listen for messages from the web worker.
+        *
+        * @method workerListener
+        * @param {Object} e Message event.
+        */
+        function workerListener (e) {
+            var data = e.data;
+            switch (data.method) {
+                case 'CREATE':
+                break;
+                case 'READ':
+                break;
+                case 'UPDATE':
+                    if (data.resource === '/progress/percent') {
+                        setProgressBar ("compile-progress-bar", data.body, "info");
+                    }
+                    if (data.resource === '/log') {
+                        writeTerminal(data.body);
+                    }
+                    break;
+                case 'DELETE':
+                    break;
+                case 'YES':
+                    // TODO; What is this a response to?
+                    hexDump (data.body);
+                break;
+                default:
+                    writeTerminal("Unknow method from worker: " + data.method);
+                break;
+            }
+        }
+
+        /**
+        * Spawn a web worker.
+        *
+        * @method workerSpawn
+        */
+        function workerSpawn() {
+            stress = false;
+            cls();
+            if (typeof worker === "undefined") {
+                // Create a new web worker. 
+                worker = new Worker('worker.js');
+
+                // Listen for "message" from worker process.
+                worker.addEventListener('message', workerListener);
+            
+            } else {
+                writeTerminal("There is already a worker running.");
+            }
+        }
+
+        /**
+        * Terminate a web worker by politely requesting it to stop.
+        *
+        * @method workerTerminate
+        */
+        function workerTerminate() {
+            if (typeof worker !== "undefined") {
+                worker.postMessage ({
+                    'id': uuid(), 
+                    'method': 'DELETE',
+                    'resource': '/self',
+            });
+                worker = undefined;
+            } else {
+                writeTerminal ("There is no worker to terminate.");
+            }
+        }
+
+        /**
+        * Terminate a web worker brutally. No questions asked.
+        *
+        * @method workerTerminateBrutally
+        */
+        function workerTerminateBrutally() {
+            if (typeof worker !== "undefined") {
+                worker.terminate();
+
+                // Undefine worker
+                worker = undefined;
+            } else {
+                writeTerminal ("There is no worker to terminate.");
+            }
+        }
+
+        /**
+        *  Send a file to a web worker as binary data.
+        *
+        *  @method workerPutFile
+        *  @param {String} fileName The file path.
+        */
+        function workerPutFile (filePath, data) {
+            // Create a file on the workers file system.
+            worker.postMessage ({
+                'id': uuid(), 
+                'method': 'CREATE',
+                'resource': '/FS/' + filePath,
+                'body': data
+            });
+        }
+
+        function workerPutAllFiles () {
+            spinSources.forEach (function (source) {
+                var data = source.doc.getValue();
+                workerPutFile(source.fileName, data);
+            });
+        }
+
+        /**
+        *  Request a file from a web worker as binary data.
+        *
+        *  @method workerGetFile
+        *  @param {String} filePath The file path.
+        */
+        function workerGetFile (filePath) {
+            worker.postMessage ({
+                'id': uuid(), 
+                'method': 'READ',
+                'resource': '/FS/' + filePath
+            });
+        }
+
+        function workerCommand(filePath) {
+            // TODO:  Make this CRUDY
+            cls();
+            worker.postMessage({'msgType': 'openspin', 'args': ['-b', 'fullDuplexSerial4port.spin']});
+        }
+
+        function stressTest(filePath) {
+            // TODO:  Make this CRUDY
+            stress = true;
+            workerCommand();
+        }
+
+        function loadProject () {
+            // Load all Spin sources from server.
+            spinSources.forEach (function (source) {
+                var oReq = new XMLHttpRequest();
+                oReq.open("GET", "/project/" + source.fileName, true);
+
+                oReq.onload = function (oEvent) {
+                    var arrayBuffer = oReq.responseText; // Note: not oReq.response
+                    if (arrayBuffer) {
+                        // Make a new Spin document in the editor like so
+                        source.doc = CodeMirror.Doc(arrayBuffer, 'text/x-spin');
+                        editor.swapDoc(source.doc);
+                    }
+                };
+                oReq.send(null);
+            });
+        }
+
+        var editor = CodeMirror.fromTextArea(editorArea, {
+            lineNumbers: true,
+            matchBrackets: true,
+            styleActiveLine: true,
+            showCursorWhenSelecting: true,
+            extraKeys: {
+                "F11": function(cm) {
+                    cm.setOption("fullScreen", !cm.getOption("fullScreen"));
+                },
+                "Esc": function(cm) {
+                    if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
+                },
+                "Ctrl-Q": function(cm){ 
+                    cm.foldCode(cm.getCursor()); 
+                },
+                "Ctrl-Space": "autocomplete"
+            },   
+            foldGutter: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            mode: "text/x-spin",
+            theme: "solarized spin"
+        });
+        editor.setSize(null, 600);
+        
+        // All sorces required to build a project.
+        var spinSources = [
+            { fileName: 'Dhcp.spin', doc: undefined},
+            { fileName: 'NetBios.spin', doc: undefined},
+            { fileName: 'Sntp.spin', doc: undefined},
+            { fileName: 'W5100.spin', doc: undefined},
+            { fileName: 'Dns.spin', doc: undefined},
+            { fileName: 'S35390A_RTCEngine.spin', doc: undefined},
+            { fileName: 'Socket.spin', doc: undefined},
+            { fileName: 'fullDuplexSerial4port.spin', doc: undefined},
+            { fileName: 'S35390A_SD-MMC_FATEngine.spin', doc: undefined},
+            { fileName: 'Spi5100CounterPasm.spin', doc: undefined},
+            { fileName: 'HttpHeader.spin', doc: undefined},
+            { fileName: 'S35390A_SD-MMC_FATEngineWrapper.spin', doc: undefined},
+            { fileName: 'WebServer_W5100_RTC.spin', doc: undefined}
+        ];     
+
+        var editorDocuments = [];
+
+        loadProject();
+  </script>
+
+  <!-- Bootstrap core JavaScript
+    ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+  <script src="https://code.jquery.com/jquery-1.10.2.min.js" type=  "text/javascript"></script>
+  <script src="js/bootstrap.min.js" type="text/javascript"></script>
+</body>
+</html>
