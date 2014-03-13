@@ -34,10 +34,37 @@ function SpinParser() {
                 return {'methodName': methodName, 'lineNumber': lineNumber, 'params': params};
             },
 
-            removeCurlyComments = function (data) {
-                // Remove all curly brace comments in the file (Thanks rosco_pc for the regexp).
-                data = data.replace(/(\{\{[^\}]*\}\})|(\{[^\}]*\})/g, '');
-                return data;
+            removeCurlyComments = function (s, i) {
+                var start;
+                var end;
+                var front;
+                var back;
+                var depth = 0;
+
+                i = i || 0;
+
+                for (i = 0; i < s.length; i += 1) {
+                    if (s[i] === "{") {
+                        depth += 1;
+                        if (start === undefined) {
+                            start = i;
+                        }
+                    } else if (s[i] === "}") {
+                        depth -= 1;
+                        if (depth === 0) {
+                            end = i;
+                            front = s.slice(0, start);
+                            back = s.slice(end + 1);
+                            s = front + back;
+                            s = removeCurlyComments(s, start + 1);
+                            return (s);
+                        }
+                    }
+                }
+                if (depth !== 0) {
+                    s = s.slice(0, start - 1);
+                }
+                return (s);
             },
 
             string2lines = function (data) {
@@ -66,7 +93,7 @@ function SpinParser() {
 
         if (output[fileName] === undefined) {
 
-            sourceRecord = {'fileName': fileName, 'publicMethods': [], 'privateMethods': []};
+            sourceRecord = {'fileName': fileName, 'publicMethods': [], 'privateMethods': [], 'subObjects': []};
 
             output[fileName] = sourceRecord;
 
@@ -101,6 +128,7 @@ function SpinParser() {
                         fileName = fileName.replace(/ /g, '');
                         fileName = fileName.replace(/[.]spin$/, '');
                         fileName += '.spin';
+                        sourceRecord.subObjects.push(fileName);
                         fileStack.push(fileName);
                     }
                     break;
@@ -137,10 +165,12 @@ function SpinParser() {
         for (key in output) {
             if (output.hasOwnProperty(key)) {
                 str += key + '\n';
-                str +=  '    Public:\n';
+                str +=  '    PUB:\n';
                 prettyPrintMethods(output[key].publicMethods);
-                str += '    Private:\n';
+                str += '    PRI:\n';
                 prettyPrintMethods(output[key].privateMethods);
+                str += '    OBJ:\n';
+                console.log(output[key].subObjcts);                
             }
         }
         str = str.replace(/, \)/g, ')');
@@ -163,7 +193,24 @@ function SpinParser() {
         fs = require('fs');
         parser = new SpinParser();
 
-        parseProject = function parse(fileName) {
+/*
+        var getSubFiles = function () {
+            fs.readFile(path + topFile, encoding, function (err, data) {
+                var fileStack;
+
+                if (err) {
+                        throw err;
+                }
+
+                fileStack = parser.parse(topFile, data);
+                console.log(fileStack);
+            });
+        };
+
+        getSubFiles();
+*/
+
+        parseProject = function parseProject (fileName) {
             var fileStack;
 
             fs.readFile(path + fileName, encoding, function (err, data) {
@@ -182,3 +229,18 @@ function SpinParser() {
         parseProject(topFile);
     }
 }());
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
