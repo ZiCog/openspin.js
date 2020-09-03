@@ -4,8 +4,14 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "express": "4.0.0"
-  }
+    "express": "4.16.0",
+    "snyk": "^1.388.0"
+  },
+  "scripts": {
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
+  },
+  "snyk": true
 }
 
 
